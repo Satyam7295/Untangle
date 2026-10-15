@@ -1,13 +1,14 @@
 import { describe, expect, it, vi } from "vitest";
 
-vi.mock("next/navigation", () => ({ redirect: vi.fn() }));
+vi.mock("../../src/lib/admin-auth", () => ({ requireAdmin: vi.fn() }));
+vi.mock("./actions", () => ({ logoutAdmin: vi.fn() }));
 
-import { redirect } from "next/navigation";
+import { requireAdmin } from "../../src/lib/admin-auth";
 import AdminPage from "./page";
 
 describe("protected admin entry", () => {
-  it("redirects unauthenticated visitors to sign-in without rendering admin content", () => {
-    AdminPage();
-    expect(redirect).toHaveBeenCalledWith("/admin/login");
+  it("checks authentication before rendering admin content", async () => {
+    await AdminPage();
+    expect(requireAdmin).toHaveBeenCalledOnce();
   });
 });

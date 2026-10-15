@@ -20,6 +20,11 @@ npm run dev
 ```
 
 Open [http://localhost:4000](http://localhost:4000). The default route is User mode. Use **Admin sign-in** to open `/admin/login`.
+For local admin authentication, set `ADMIN_ID`, `ADMIN_PASSWORD`, and a random
+`SESSION_SECRET` (at least 32 characters) in `.env.local`. The ID comparison is
+exact, including case and whitespace; the password is also compared exactly.
+These values are read only by server code. Sessions are signed, HTTP-only
+cookies that expire after eight hours.
 
 ## Database foundation
 
@@ -56,6 +61,8 @@ npm run build
 
 ## Current scope and security notes
 
-The query form is an interface shell only; it does not send or process queries. The Admin sign-in form is also an entry-flow shell and does not send credentials. There are no credentials, client-side admin flags, or fabricated authentication responses in this project.
-
-`/admin` redirects to `/admin/login` because server-verified authentication has not been integrated. Before exposing an authenticated dashboard, add a server-side identity provider/session mechanism, protect routes on the server, validate credentials without logging them, and add integration tests for authorization boundaries.
+The query form is an interface shell only; it does not send or process queries.
+Admin authentication uses one configured account and an in-memory-free signed
+cookie session; there is no database-backed session store. Login attempts are
+not persisted or rate-limited in this MVP, so deploy behind suitable platform
+rate limiting if the endpoint is exposed publicly.
