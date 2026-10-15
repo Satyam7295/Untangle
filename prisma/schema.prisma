@@ -1,0 +1,223 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Category {
+  id            String        @id @default(uuid()) @db.Uuid
+  name          String
+  slug          String        @unique
+  description   String?
+  isActive      Boolean       @default(true)
+  subcategories Subcategory[]
+  tickets       Ticket[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([isActive])
+}
+
+model Subcategory {
+  id          String   @id @default(uuid()) @db.Uuid
+  categoryId  String   @db.Uuid
+  category    Category @relation(fields: [categoryId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  name        String
+  slug        String
+  description String?
+  isActive    Boolean  @default(true)
+  tickets     Ticket[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([categoryId, slug])
+  @@index([categoryId, isActive])
+}
+
+model PriorityLevel {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String
+  slug        String   @unique
+  description String?
+  severity    Int
+  isActive    Boolean  @default(true)
+  tickets     Ticket[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isActive, severity])
+}
+
+model Team {
+  id              String           @id @default(uuid()) @db.Uuid
+  name            String
+  slug            String           @unique
+  description     String?
+  isActive        Boolean          @default(true)
+  businessRules   BusinessRule[]
+  escalationRules EscalationRule[]
+  tickets         Ticket[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@index([isActive])
+}
+
+model BusinessRule {
+  id               String                @id @default(uuid()) @db.Uuid
+  name             String
+  description      String?
+  isActive         Boolean               @default(true)
+  precedence       Int
+  conditions       Json
+  effectiveFrom    DateTime?
+  effectiveUntil   DateTime?
+  targetTeamId     String?               @db.Uuid
+  targetTeam       Team?                 @relation(fields: [targetTeamId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  actions          BusinessRuleAction[]
+  matchedDecisions DecisionMatchedRule[]
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+
+  @@index([isActive, precedence])
+  @@index([targetTeamId])
+  @@index([effectiveFrom, effectiveUntil])
+}
+
+model ActionConfiguration {
+  id            String               @id @default(uuid()) @db.Uuid
+  actionType    String
+  name          String
+  description   String?
+  configuration Json?
+  isActive      Boolean              @default(true)
+  businessRules BusinessRuleAction[]
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+
+  @@unique([actionType, name])
+  @@index([actionType, isActive])
+}
+
+model BusinessRuleAction {
+  businessRuleId        String              @db.Uuid
+  actionConfigurationId String              @db.Uuid
+  order                 Int                 @default(0)
+  businessRule          BusinessRule        @relation(fields: [businessRuleId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  actionConfiguration   ActionConfiguration @relation(fields: [actionConfigurationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@id([businessRuleId, actionConfigurationId])
+  @@index([actionConfigurationId])
+}
+
+model SlaConfiguration {
+  id                String           @id @default(uuid()) @db.Uuid
+  name              String
+  responseMinutes   Int?
+  resolutionMinutes Int?
+  isActive          Boolean          @default(true)
+  escalationRules   EscalationRule[]
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  @@index([isActive])
+}
+
+model EscalationRule {
+  id                String            @id @default(uuid()) @db.Uuid
+  name              String
+  isActive          Boolean           @default(true)
+  triggerConditions Json
+  targetTeamId      String?           @db.Uuid
+  targetTeam        Team?             @relation(fields: [targetTeamId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  escalationLevel   Int
+  slaId             String?           @db.Uuid
+  sla               SlaConfiguration? @relation(fields: [slaId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  @@index([isActive, escalationLevel])
+  @@index([targetTeamId])
+  @@index([slaId])
+}
+
+model Ticket {
+  id              String           @id @default(uuid()) @db.Uuid
+  referenceNumber String           @unique @default(uuid())
+  originalQuery   String
+  categoryId      String?          @db.Uuid
+  category        Category?        @relation(fields: [categoryId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  subcategoryId   String?          @db.Uuid
+  subcategory     Subcategory?     @relation(fields: [subcategoryId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  priorityId      String?          @db.Uuid
+  priority        PriorityLevel?   @relation(fields: [priorityId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  assignedTeamId  String?          @db.Uuid
+  assignedTeam    Team?            @relation(fields: [assignedTeamId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  status          TicketStatus     @default(OPEN)
+  escalationLevel Int              @default(0)
+  decisions       DecisionRecord[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@index([status, createdAt])
+  @@index([categoryId])
+  @@index([subcategoryId])
+  @@index([priorityId])
+  @@index([assignedTeamId, status])
+}
+
+model DecisionRecord {
+  id                  String                @id @default(uuid()) @db.Uuid
+  ticketId            String                @db.Uuid
+  ticket              Ticket                @relation(fields: [ticketId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  outcome             DecisionOutcome
+  explanation         Json?
+  humanReviewRequired Boolean               @default(false)
+  matchedRules        DecisionMatchedRule[]
+  createdAt           DateTime              @default(now())
+
+  @@index([ticketId, createdAt])
+  @@index([outcome, humanReviewRequired])
+}
+
+model DecisionMatchedRule {
+  decisionId     String         @db.Uuid
+  businessRuleId String         @db.Uuid
+  decision       DecisionRecord @relation(fields: [decisionId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  businessRule   BusinessRule   @relation(fields: [businessRuleId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@id([decisionId, businessRuleId])
+  @@index([businessRuleId])
+}
+
+model AuditEvent {
+  id         String   @id @default(uuid()) @db.Uuid
+  actorRef   String?
+  eventType  String
+  entityType String
+  entityId   String
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId, createdAt])
+  @@index([eventType, createdAt])
+  @@index([actorRef, createdAt])
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+  ESCALATED
+}
+
+enum DecisionOutcome {
+  ROUTED
+  ESCALATED
+  HUMAN_REVIEW
+  NO_MATCH
+}
