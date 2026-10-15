@@ -1,6 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 
-import { getDatabaseUrl } from "@/src/lib/env";
+import { getDatabaseUrl } from "./env";
 
 declare global {
   var prisma: PrismaClient | undefined;

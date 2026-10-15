@@ -8,7 +8,7 @@ datasource db {
 }
 
 model Category {
-  id            String        @id @default(uuid()) @db.Uuid
+  id            String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name          String
   slug          String        @unique
   description   String?
@@ -22,7 +22,7 @@ model Category {
 }
 
 model Subcategory {
-  id          String   @id @default(uuid()) @db.Uuid
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   categoryId  String   @db.Uuid
   category    Category @relation(fields: [categoryId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   name        String
@@ -38,7 +38,7 @@ model Subcategory {
 }
 
 model PriorityLevel {
-  id          String   @id @default(uuid()) @db.Uuid
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name        String
   slug        String   @unique
   description String?
@@ -52,7 +52,7 @@ model PriorityLevel {
 }
 
 model Team {
-  id              String           @id @default(uuid()) @db.Uuid
+  id              String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name            String
   slug            String           @unique
   description     String?
@@ -67,17 +67,19 @@ model Team {
 }
 
 model BusinessRule {
-  id               String                @id @default(uuid()) @db.Uuid
+  id               String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name             String
   description      String?
   isActive         Boolean               @default(true)
   precedence       Int
+  conditionMode    RuleConditionMode     @default(ALL)
   conditions       Json
+  actions          Json                @default("[]")
   effectiveFrom    DateTime?
   effectiveUntil   DateTime?
   targetTeamId     String?               @db.Uuid
   targetTeam       Team?                 @relation(fields: [targetTeamId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  actions          BusinessRuleAction[]
+  actionLinks      BusinessRuleAction[]
   matchedDecisions DecisionMatchedRule[]
   createdAt        DateTime              @default(now())
   updatedAt        DateTime              @updatedAt
@@ -85,10 +87,11 @@ model BusinessRule {
   @@index([isActive, precedence])
   @@index([targetTeamId])
   @@index([effectiveFrom, effectiveUntil])
+  @@unique([name])
 }
 
 model ActionConfiguration {
-  id            String               @id @default(uuid()) @db.Uuid
+  id            String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   actionType    String
   name          String
   description   String?
@@ -114,7 +117,7 @@ model BusinessRuleAction {
 }
 
 model SlaConfiguration {
-  id                String           @id @default(uuid()) @db.Uuid
+  id                String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name              String
   responseMinutes   Int?
   resolutionMinutes Int?
@@ -127,7 +130,7 @@ model SlaConfiguration {
 }
 
 model EscalationRule {
-  id                String            @id @default(uuid()) @db.Uuid
+  id                String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name              String
   isActive          Boolean           @default(true)
   triggerConditions Json
@@ -145,8 +148,8 @@ model EscalationRule {
 }
 
 model Ticket {
-  id              String           @id @default(uuid()) @db.Uuid
-  referenceNumber String           @unique @default(uuid())
+  id              String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  referenceNumber String           @unique @default(dbgenerated("(gen_random_uuid())::text"))
   originalQuery   String
   categoryId      String?          @db.Uuid
   category        Category?        @relation(fields: [categoryId], references: [id], onDelete: Restrict, onUpdate: Cascade)
@@ -170,7 +173,7 @@ model Ticket {
 }
 
 model DecisionRecord {
-  id                  String                @id @default(uuid()) @db.Uuid
+  id                  String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   ticketId            String                @db.Uuid
   ticket              Ticket                @relation(fields: [ticketId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   outcome             DecisionOutcome
@@ -194,7 +197,7 @@ model DecisionMatchedRule {
 }
 
 model AuditEvent {
-  id         String   @id @default(uuid()) @db.Uuid
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   actorRef   String?
   eventType  String
   entityType String
@@ -220,4 +223,9 @@ enum DecisionOutcome {
   ESCALATED
   HUMAN_REVIEW
   NO_MATCH
+}
+
+enum RuleConditionMode {
+  ALL
+  ANY
 }
