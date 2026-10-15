@@ -94,6 +94,13 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function parseRuleDate(value: unknown): Date | null {
+  if (value === null) return null;
+  const text = String(value);
+  const normalized = /(?:Z|[+-]\d{2}:\d{2})$/.test(text) ? text : `${text}Z`;
+  return new Date(normalized);
+}
+
 export function validateRuleConfiguration(input: unknown): RuleValidationResult {
     if (!isRecord(input)) return { ok: false, error: "Rule configuration must be an object." };
     const name = typeof input.name === "string" ? input.name.trim() : "";
@@ -141,8 +148,8 @@ export function validateRuleConfiguration(input: unknown): RuleValidationResult 
     if (!Number.isInteger(input.precedence) || (input.precedence as number) < 0 || (input.precedence as number) > MAX_RULE_PRECEDENCE) {
       return { ok: false, error: `Precedence must be a whole number between 0 and ${MAX_RULE_PRECEDENCE}.` };
     }
-    const effectiveFrom = input.effectiveFrom === null ? null : new Date(String(input.effectiveFrom));
-    const effectiveUntil = input.effectiveUntil === null ? null : new Date(String(input.effectiveUntil));
+    const effectiveFrom = parseRuleDate(input.effectiveFrom);
+    const effectiveUntil = parseRuleDate(input.effectiveUntil);
     if ((effectiveFrom && Number.isNaN(effectiveFrom.getTime())) || (effectiveUntil && Number.isNaN(effectiveUntil.getTime()))) return { ok: false, error: "Enter valid effective dates." };
     if (effectiveFrom && effectiveUntil && effectiveUntil <= effectiveFrom) return { ok: false, error: "The effective end must be later than the start." };
     if (typeof input.isActive !== "boolean") return { ok: false, error: "Choose an activation status." };

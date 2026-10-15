@@ -65,4 +65,21 @@ describe("configuration validation", () => {
       effectiveUntil: "2026-01-01T00:00:00Z",
     }).ok).toBe(false);
   });
+
+  it("treats datetime-local rule dates as UTC", () => {
+    const result = validateRuleConfiguration({
+      name: "UTC schedule",
+      description: "",
+      conditionMode: "ALL",
+      conditions: [{ field: "status", operator: "EQUALS", value: "OPEN" }],
+      actions: [{ type: "ESCALATE", value: "1" }],
+      precedence: 1,
+      isActive: true,
+      effectiveFrom: "2026-02-01T10:00",
+      effectiveUntil: "2026-02-01T11:00",
+    });
+
+    expect(result.ok && result.value.effectiveFrom?.toISOString()).toBe("2026-02-01T10:00:00.000Z");
+    expect(result.ok && result.value.effectiveUntil?.toISOString()).toBe("2026-02-01T11:00:00.000Z");
+  });
 });
