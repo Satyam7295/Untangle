@@ -66,14 +66,43 @@ ineligible for retrieval; upload each policy again to re-embed it before
 removing the old deployment. Existing documents created before the embedding
 metadata migration have no model metadata and likewise require re-indexing.
 
+Verify the real server-side embedding configuration and API response locally
+without printing credentials or response contents:
+
+```bash
+npm run embedding:verify
+```
+
+The command loads `.env.local`, sends one harmless sentence to Cloudflare, and
+requires HTTP/API success plus exactly 384 finite numeric values.
+
 Apply the policy migrations before using the upload flow:
 
 ```bash
 npx prisma migrate dev
 ```
 
+For a remote or production database, inspect the target first and use
+`npx prisma migrate deploy` only after explicit approval for that environment.
+The current pending migration is
+`20261020020000_cloudflare_embedding_metadata`.
+
 Retrieval only reads the active `READY` document for the trusted tenant context
 provided by the server; browser-submitted tenant IDs are not accepted.
+Configure `ADMIN_TENANT_ID` to the tenant key used by the server, and configure
+the local admin login with `ADMIN_ID`, `ADMIN_PASSWORD`, and
+`SESSION_SECRET`. Start the application with `npm run dev`, open
+`/admin/login`, sign in, and upload a harmless test policy at
+`/admin/policies`. The current public `/` page is an interface preview; no
+query-to-retrieval route is wired yet, so retrieval verification is performed
+through the policy retrieval service tests until that orchestration route is
+implemented.
+
+Document and query embeddings both use `getEmbeddingProvider()`, so they share
+the configured provider, model, and dimensions. If stored metadata differs
+from the current provider configuration, retrieval returns `REINDEX_REQUIRED`
+and policy interpretation produces a human-review result rather than an answer
+from incompatible vectors.
 
 ## Database foundation
 

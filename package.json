@@ -13,7 +13,8 @@
     "db:generate": "prisma generate",
     "db:validate": "prisma validate",
     "db:migrate": "prisma migrate dev",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:seed": "tsx prisma/seed.ts",
+    "embedding:verify": "tsx scripts/verify-cloudflare-embedding.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.0",
