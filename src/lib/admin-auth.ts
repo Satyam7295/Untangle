@@ -6,10 +6,10 @@ import {
   createAdminSession,
   isValidAdminSession,
 } from "./admin-session";
-import { getAdminConfiguration } from "./env";
+import { getSessionSecret } from "./env";
 
 export async function isAdminAuthenticated(): Promise<boolean> {
-  const { sessionSecret } = getAdminConfiguration();
+  const sessionSecret = getSessionSecret();
   const cookieStore = await cookies();
   return isValidAdminSession(cookieStore.get(ADMIN_SESSION_COOKIE)?.value, sessionSecret);
 }
@@ -21,7 +21,7 @@ export async function requireAdmin(): Promise<void> {
 }
 
 export async function setAdminSession(): Promise<void> {
-  const { sessionSecret } = getAdminConfiguration();
+  const sessionSecret = getSessionSecret();
   const cookieStore = await cookies();
   cookieStore.set(ADMIN_SESSION_COOKIE, createAdminSession(sessionSecret), {
     httpOnly: true,

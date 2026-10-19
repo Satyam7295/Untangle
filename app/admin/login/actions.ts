@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 
 import { verifyAdminCredentials } from "../../../src/lib/admin-credentials";
 import { setAdminSession } from "../../../src/lib/admin-auth";
-import { getAdminConfiguration } from "../../../src/lib/env";
 
 export type LoginState = {
   error?: string;
@@ -21,7 +20,7 @@ export async function loginAdmin(
     return { error: "Enter your administrator ID and password." };
   }
 
-  if (!verifyAdminCredentials(id, password, getAdminConfiguration())) {
+  if (!verifyAdminCredentials(id, password)) {
     return { error: "Invalid administrator ID or password." };
   }
 

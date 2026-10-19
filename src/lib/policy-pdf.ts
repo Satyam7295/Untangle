@@ -1,5 +1,3 @@
-import { PDFParse } from "pdf-parse";
-
 import type { ExtractedPolicyPage } from "./policy-chunking";
 
 export const DEFAULT_MAX_POLICY_UPLOAD_BYTES = 20 * 1024 * 1024;
@@ -30,6 +28,7 @@ export async function extractPolicyPages(data: Uint8Array): Promise<ExtractedPol
   if (data.length < 5 || new TextDecoder().decode(data.slice(0, 5)) !== "%PDF-") {
     throw new Error("The uploaded file is not a valid PDF.");
   }
+  const { PDFParse } = await import("pdf-parse");
   const parser = new PDFParse({ data });
   try {
     const result = await parser.getText({ lineEnforce: true });

@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { getAdminConfiguration, getDatabaseUrl } from "./env";
+import {
+  getAdminConfiguration,
+  getAdminCredentials,
+  getDatabaseUrl,
+  getSessionSecret,
+} from "./env";
 
 describe("getDatabaseUrl", () => {
   it("returns a configured database URL", () => {
@@ -27,13 +32,29 @@ describe("getDatabaseUrl", () => {
     });
 
     it("rejects missing configuration", () => {
-      expect(() => getAdminConfiguration({})).toThrow("ADMIN_ID, ADMIN_PASSWORD, SESSION_SECRET, and ADMIN_TENANT_ID");
+      expect(() => getAdminConfiguration({})).toThrow("ADMIN_TENANT_ID");
     });
 
     it("rejects a short session secret", () => {
       expect(() =>
         getAdminConfiguration({ ...validConfiguration, SESSION_SECRET: "too-short" }),
       ).toThrow("SESSION_SECRET must be at least 32 characters");
+    });
+  });
+
+  describe("admin authentication configuration", () => {
+    it("loads credentials without requiring a tenant", () => {
+      expect(getAdminCredentials({
+        ADMIN_ID: "admin@example.test",
+        ADMIN_PASSWORD: "fictional-password",
+      })).toEqual({
+        id: "admin@example.test",
+        password: "fictional-password",
+      });
+    });
+
+    it("loads a valid session secret without requiring a tenant", () => {
+      expect(getSessionSecret({ SESSION_SECRET: "a".repeat(32) })).toBe("a".repeat(32));
     });
   });
 
