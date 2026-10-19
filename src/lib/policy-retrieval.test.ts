@@ -116,7 +116,34 @@ describe("policy retrieval", () => {
       repository,
       minSimilarity: 0,
     });
+
     expect(repository.findActiveReadyPolicy).toHaveBeenCalledWith("tenant-a");
+  });
+
+  it("does not mix a stored vector with a different embedding model", async () => {
+    const result = await retrievePolicyChunks(
+      createTrustedTenantContext("tenant-a"),
+      "query",
+      {
+        embeddingProvider: {
+          generateEmbedding: vi.fn().mockResolvedValue([1, 0]),
+          metadata: { provider: "cloudflare", model: "new-model", dimensions: 2 },
+        },
+        repository: repositoryReturning({
+          ...policy,
+          embeddingProvider: "cloudflare",
+          embeddingModel: "old-model",
+          embeddingDimensions: 2,
+        }),
+      },
+    );
+
+    expect(result).toEqual({
+      found: false,
+      policy: null,
+      excerpts: [],
+      reason: "REINDEX_REQUIRED",
+    });
   });
 
   it("respects topK and validates query/options", async () => {

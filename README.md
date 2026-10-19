@@ -46,14 +46,25 @@ npm test -- --run src/lib/groq-provider.test.ts src/lib/policy-interpretation.te
 ```
 
 Policy PDF ingestion is available to the signed-in admin at `/admin/policies`.
-Set `ADMIN_TENANT_ID` to the server-resolved tenant key, then configure the
-OpenAI-compatible embedding service with `EMBEDDING_API_KEY`,
-`EMBEDDING_BASE_URL`, and `EMBEDDING_MODEL`. The default endpoint is OpenAI's
-`/v1/embeddings` API, but any compatible private endpoint can be used. Uploads
+Set `ADMIN_TENANT_ID` to the server-resolved tenant key, then configure
+Cloudflare Workers AI with `EMBEDDING_PROVIDER=cloudflare`,
+`EMBEDDING_MODEL=@cf/baai/bge-small-en-v1.5`, `EMBEDDING_DIMENSIONS=384`,
+`CLOUDFLARE_ACCOUNT_ID`, and the server-only `CLOUDFLARE_API_TOKEN`. The token
+must never use a `NEXT_PUBLIC_` prefix or be exposed to browser code. Uploads
 are size-limited, checked for PDF magic bytes, extracted page by page, chunked,
 embedded, and persisted before the document is activated. A failed index is
 never made active. `POLICY_MAX_UPLOAD_BYTES`, `POLICY_CHUNK_SIZE`, and
 `POLICY_CHUNK_OVERLAP` are optional tuning settings.
+
+Cloudflare setup: create an API token with the minimum Workers AI permissions,
+copy the account ID and token into `.env.local`, and keep the same five
+embedding variables in the Vercel project’s Production environment variables.
+After applying migrations, deploy the application and upload a policy from
+`/admin/policies`. The embedding request is made only by server-side code.
+Changing provider, model, or dimensions makes existing indexed documents
+ineligible for retrieval; upload each policy again to re-embed it before
+removing the old deployment. Existing documents created before the embedding
+metadata migration have no model metadata and likewise require re-indexing.
 
 Apply the policy migrations before using the upload flow:
 

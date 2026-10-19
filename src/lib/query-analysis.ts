@@ -27,7 +27,7 @@ export type QueryAnalysisSuccess = {
 };
 
 export type QueryAnalysisNoResult = {
-  status: "NO_ACTIVE_POLICY" | "NO_USABLE_CHUNKS" | "NO_RELEVANT_EVIDENCE";
+  status: "NO_ACTIVE_POLICY" | "REINDEX_REQUIRED" | "NO_USABLE_CHUNKS" | "NO_RELEVANT_EVIDENCE";
   retrieval: PolicyRetrievalResult;
 };
 

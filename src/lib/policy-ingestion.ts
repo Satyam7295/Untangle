@@ -1,4 +1,4 @@
-import { getEmbeddingProvider, type EmbeddingProvider } from "./embedding-provider";
+import { getEmbeddingProvider, type EmbeddingMetadata, type EmbeddingProvider } from "./embedding-provider";
 import { chunkPolicyPages, type PolicyChunk } from "./policy-chunking";
 import {
   DEFAULT_MAX_POLICY_UPLOAD_BYTES,
@@ -23,6 +23,7 @@ type IngestionRepository = {
     id: string,
     tenantId: string,
     chunks: Array<PolicyChunk & { embedding: readonly number[] }>,
+    embeddingMetadata?: EmbeddingMetadata,
   ): Promise<void>;
 };
 
@@ -32,7 +33,7 @@ const repository: IngestionRepository = {
     where: { id },
     data: { indexingStatus, ...data },
   }).then(() => undefined),
-  replaceChunksAndActivate: (id, tenantId, chunks) => prisma.$transaction(async (transaction) => {
+  replaceChunksAndActivate: (id, tenantId, chunks, embeddingMetadata) => prisma.$transaction(async (transaction) => {
     await transaction.policyChunk.deleteMany({ where: { policyId: id, tenantId } });
     await transaction.policyChunk.createMany({
       data: chunks.map((chunk) => ({
@@ -52,7 +53,14 @@ const repository: IngestionRepository = {
     });
     await transaction.policyDocument.update({
       where: { id },
-      data: { isActive: true, indexingStatus: "READY", failureReason: null },
+      data: {
+        isActive: true,
+        indexingStatus: "READY",
+        failureReason: null,
+        embeddingProvider: embeddingMetadata?.provider,
+        embeddingModel: embeddingMetadata?.model,
+        embeddingDimensions: embeddingMetadata?.dimensions,
+      },
     });
   }),
 };
@@ -110,7 +118,7 @@ export async function ingestPolicyPdf(
       }
       embedded.push({ ...chunk, embedding });
     }
-    await activeRepository.replaceChunksAndActivate(document.id, tenantId, embedded);
+    await activeRepository.replaceChunksAndActivate(document.id, tenantId, embedded, provider.metadata);
     return { id: document.id, chunkCount: chunks.length, pageCount: pages.length };
   } catch (error) {
     await activeRepository.updateStatus(document.id, "FAILED", {

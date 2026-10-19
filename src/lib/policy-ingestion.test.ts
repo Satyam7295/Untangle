@@ -34,7 +34,10 @@ describe("policy ingestion", () => {
       repository,
       chunkSize: 200,
       chunkOverlap: 0,
-      embeddingProvider: { generateEmbedding: vi.fn().mockResolvedValue([1, 0]) },
+      embeddingProvider: {
+        generateEmbedding: vi.fn().mockResolvedValue([1, 0]),
+        metadata: { provider: "cloudflare", model: "model", dimensions: 2 },
+      },
     });
     expect(result).toMatchObject({ id: "policy-1", chunkCount: 1, pageCount: 1 });
     expect(statuses).toEqual(["EXTRACTING", "CHUNKING", "EMBEDDING"]);
@@ -42,6 +45,7 @@ describe("policy ingestion", () => {
       "policy-1",
       "tenant-a",
       [expect.objectContaining({ embedding: [1, 0], pageStart: 1 })],
+      { provider: "cloudflare", model: "model", dimensions: 2 },
     );
   });
 

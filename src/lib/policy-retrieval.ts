@@ -23,6 +23,9 @@ type StoredPolicy = {
   fileName: string;
   title: string | null;
   indexingStatus: string;
+  embeddingProvider?: string | null;
+  embeddingModel?: string | null;
+  embeddingDimensions?: number | null;
   chunks: StoredChunk[];
 };
 
@@ -40,6 +43,9 @@ const policyRepository: PolicyRepository = {
         fileName: true,
         title: true,
         indexingStatus: true,
+        embeddingProvider: true,
+        embeddingModel: true,
+        embeddingDimensions: true,
         chunks: {
           where: { tenantId },
           orderBy: { chunkIndex: "asc" },
@@ -85,6 +91,7 @@ export type PolicyRetrievalResult = {
   excerpts: RetrievedPolicyExcerpt[];
   reason:
     | "NO_ACTIVE_POLICY"
+    | "REINDEX_REQUIRED"
     | "NO_USABLE_CHUNKS"
     | "NO_RELEVANT_EVIDENCE"
     | null;
@@ -154,6 +161,14 @@ export async function retrievePolicyChunks(
   const policy = await (options.repository ?? policyRepository).findActiveReadyPolicy(context.tenantId);
   if (!policy) {
     return { found: false, policy: null, excerpts: [], reason: "NO_ACTIVE_POLICY" };
+  }
+  const metadata = provider.metadata;
+  if (metadata && (
+    policy.embeddingProvider !== metadata.provider
+    || policy.embeddingModel !== metadata.model
+    || policy.embeddingDimensions !== metadata.dimensions
+  )) {
+    return { found: false, policy: null, excerpts: [], reason: "REINDEX_REQUIRED" };
   }
 
   const scored = policy.chunks.flatMap((chunk) => {

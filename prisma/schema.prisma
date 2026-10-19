@@ -218,6 +218,9 @@ model PolicyDocument {
   sourceSizeBytes Int
   pageCount       Int?
   failureReason   String?
+  embeddingProvider String?
+  embeddingModel    String?
+  embeddingDimensions Int?
   indexingStatus  PolicyIndexingStatus @default(UPLOADING)
   isActive        Boolean             @default(false)
   chunks          PolicyChunk[]
