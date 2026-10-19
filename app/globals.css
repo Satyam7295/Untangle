@@ -207,6 +207,23 @@ h1 {
   color: var(--teal-dark);
 }
 
+.decision-panel {
+  margin-top: 24px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #f4faf8;
+}
+
+.decision-panel h2 {
+  font-size: 1.4rem;
+}
+
+.decision-panel p {
+  margin: 10px 0 0;
+  line-height: 1.5;
+}
+
 .auth-page {
   width: min(520px, 100%);
   margin: 0 auto;

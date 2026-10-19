@@ -63,9 +63,22 @@ npm test
 npm run build
 ```
 
-## Current scope and security notes
+## Query processing and security notes
 
-The query form is an interface shell only; it does not send or process queries.
+The default Write Query experience accepts a support query and sends it to a
+server action. The server creates a validated runtime context, loads active and
+effective business rules from PostgreSQL, and evaluates them with the
+deterministic rule engine. Query text is never used by an LLM to choose
+priority, assignment, escalation, or other business actions.
+
+Each submitted query produces an explainable decision with matched rules,
+proposed actions, conflicts, validation errors, and a human-review
+recommendation. A ticket and decision record are created transactionally only
+after context and action references are validated. Conflicting actions,
+malformed rules, or other unsafe outcomes never execute actions; they are
+recorded as requiring human review. No additional schema migration is needed
+for this workflow.
+
 Admin authentication uses one configured account and an in-memory-free signed
 cookie session; there is no database-backed session store. Login attempts are
 not persisted or rate-limited in this MVP, so deploy behind suitable platform
