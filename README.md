@@ -26,6 +26,25 @@ exact, including case and whitespace; the password is also compared exactly.
 These values are read only by server code. Sessions are signed, HTTP-only
 cookies that expire after eight hours.
 
+The policy interpretation service uses Groq for chat completions. Obtain a
+server API key from [Groq Console](https://console.groq.com/keys), then set
+`GROQ_API_KEY` in `.env.local`. `GROQ_MODEL` is optional and defaults to
+`llama-3.3-70b-versatile`. Both variables are server-only; never prefix them
+with `NEXT_PUBLIC_` or expose them to browser code. The provider uses Groq's
+JSON object response mode, bounded retries, and request timeouts, and validates
+the returned interpretation before it can be used.
+
+Groq is an LLM provider only. It is not used for embeddings, and the existing
+embedding provider remains a separate server-side dependency. The interpreter
+is an internal service intended for a future authenticated orchestration layer;
+this feature does not add a public endpoint, ticket creation, or database
+writes. Tests inject mocked provider responses and therefore run without a
+paid Groq credential:
+
+```bash
+npm test -- --run src/lib/groq-provider.test.ts src/lib/policy-interpretation.test.ts
+```
+
 ## Database foundation
 
 PostgreSQL is the source of truth for the domain model, accessed from server-side

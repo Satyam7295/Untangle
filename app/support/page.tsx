@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { requireAdmin } from "../../src/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
@@ -10,7 +12,7 @@ export default async function SupportWorkspacePage() {
   return (
     <section className="admin-section support-workspace" aria-labelledby="support-title">
       <nav className="support-topbar" aria-label="Support workspace navigation">
-        <a className="brand" href="/"><span className="brand-mark" aria-hidden="true">U</span><span className="brand-name">Untangle</span></a>
+        <Link className="brand" href="/"><span className="brand-mark" aria-hidden="true">U</span><span className="brand-name">Untangle</span></Link>
         <span className="status-badge">Support workspace preview</span>
       </nav>
       <p className="eyebrow">Support workspace</p>

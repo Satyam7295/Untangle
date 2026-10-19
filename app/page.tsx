@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, KeyboardEvent, useRef, useState } from "react";
+import Link from "next/link";
 
 type Message = {
   id: number;
@@ -60,10 +61,10 @@ export default function HomePage() {
   return (
     <section className="chat-workspace" aria-label="Untangle assistant">
       <aside className="chat-sidebar">
-        <a className="chat-brand" href="/" aria-label="Untangle home">
+        <Link className="chat-brand" href="/" aria-label="Untangle home">
           <span className="chat-brand-mark" aria-hidden="true">u</span>
           <span>untangle</span>
-        </a>
+        </Link>
 
         <button className="new-chat-button" type="button" onClick={startNewConversation}>
           <span aria-hidden="true">＋</span> New conversation
@@ -71,9 +72,9 @@ export default function HomePage() {
 
         <div className="sidebar-section">
           <p className="sidebar-label">WORKSPACE</p>
-          <a className="sidebar-link sidebar-link-active" href="/" aria-current="page">
+          <Link className="sidebar-link sidebar-link-active" href="/" aria-current="page">
             <span aria-hidden="true">◌</span> Ask Untangle
-          </a>
+          </Link>
         </div>
 
         <div className="sidebar-bottom">
