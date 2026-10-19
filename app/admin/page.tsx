@@ -52,7 +52,7 @@ export default async function AdminPage() {
           </article>
         </div>
         <p className="form-note policy-note">
-          Policy upload and indexing are being connected to the backend. This page currently presents the new admin workflow; it does not activate or store a document yet.
+          Uploads are stored privately, extracted, chunked and embedded before a replacement becomes active.
         </p>
       </section>
     </ConfigurationLayout>

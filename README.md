@@ -40,7 +40,7 @@ npm run db:seed
 
 The migration creates the configuration entities (categories, priorities, teams,
 rules, actions, SLAs), operational persistence entities (tickets and decisions),
-and an audit-event foundation. The seed is development-only, repeatable, and
+and an audit-event foundation, plus tenant-scoped policy ingestion entities. The seed is development-only, repeatable, and
 does not create an admin account, tickets, decisions, or audit history. It
 updates only the clearly fictional reference records it owns.
 
@@ -53,6 +53,37 @@ pages do not import the Prisma client, so they remain usable when PostgreSQL is
 not running locally. `npm run db:validate` validates the Prisma schema without
 connecting to a database. A migration is only applied when `prisma migrate dev`
 is run explicitly.
+
+## Policy ingestion
+
+The admin policy page accepts PDF files up to 10 MB. The server verifies the PDF
+signature, stores the file in the private `POLICY_STORAGE_DIR` directory, extracts
+text and page numbers with `pdf-parse`, normalizes and overlaps chunks, and calls
+the configured OpenAI-compatible embeddings endpoint. Chunks and embeddings are
+stored in PostgreSQL JSONB with tenant and document identifiers. This is the
+development-compatible vector store for this feature; query retrieval is not
+implemented yet. A future retrieval feature can move the JSONB vectors to
+pgvector without changing the document lifecycle.
+
+Set these server-only values in `.env.local`:
+
+- `ADMIN_TENANT_SLUG` identifies the tenant controlled by the configured admin
+  account; it defaults to `default` and is never read from form data.
+- `POLICY_STORAGE_DIR` is a private filesystem directory (default `.data/policies`).
+- `EMBEDDING_PROVIDER`, `EMBEDDING_API_URL`, `EMBEDDING_MODEL`,
+  `EMBEDDING_DIMENSIONS`, and `OPENAI_API_KEY` configure the embeddings service.
+  The default provider is `openai`, model is `text-embedding-3-small`, and
+  dimensions are `1536`.
+- `GROQ_API_KEY` and `GROQ_MODEL` are reserved for future LLM inference. Groq
+  does not currently document a dedicated embeddings endpoint or embedding
+  model, so policy embeddings must not be sent to Groq.
+
+Run `npx prisma migrate dev` after configuring `DATABASE_URL`, then start the
+application. A policy remains inactive during processing and only becomes active
+after every chunk has a valid embedding and the database transaction succeeds.
+Replacing a policy swaps activation atomically, so a failed replacement leaves
+the prior active policy in place. Scanned PDFs are rejected because OCR is not
+included.
 
 ## Verification
 

@@ -199,6 +199,13 @@ h1 {
   color: var(--muted);
 }
 
+.form-error {
+  color: #a33f32;
+  margin: 14px 0 0;
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
 .error-message {
   color: #a33f32;
 }

@@ -21,6 +21,58 @@ model Category {
   @@index([isActive])
 }
 
+model Tenant {
+  id              String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  slug            String           @unique
+  name            String
+  policyDocuments PolicyDocument[]
+  policyChunks    PolicyChunk[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+}
+
+model PolicyDocument {
+  id               String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId         String              @db.Uuid
+  tenant           Tenant              @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  originalFilename String
+  storageKey       String              @unique
+  sha256           String
+  mimeType         String
+  sizeBytes        Int
+  pageCount        Int?
+  chunkCount       Int?
+  status           PolicyIndexStatus   @default(PENDING)
+  errorMessage     String?
+  isActive         Boolean             @default(false)
+  activatedAt      DateTime?
+  chunks           PolicyChunk[]
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  @@index([tenantId, status, createdAt])
+  @@index([tenantId, isActive])
+  @@index([tenantId, sha256])
+}
+
+model PolicyChunk {
+  id               String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId         String         @db.Uuid
+  tenant           Tenant         @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  policyDocumentId String         @db.Uuid
+  policyDocument   PolicyDocument @relation(fields: [policyDocumentId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  chunkIndex       Int
+  content          String
+  embedding        Json
+  pageStart        Int?
+  pageEnd          Int?
+  section          String?
+  createdAt        DateTime       @default(now())
+
+  @@unique([policyDocumentId, chunkIndex])
+  @@index([tenantId, policyDocumentId])
+}
+
 model Subcategory {
   id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   categoryId  String   @db.Uuid
@@ -228,4 +280,11 @@ enum DecisionOutcome {
 enum RuleConditionMode {
   ALL
   ANY
+}
+
+enum PolicyIndexStatus {
+  PENDING
+  PROCESSING
+  READY
+  FAILED
 }

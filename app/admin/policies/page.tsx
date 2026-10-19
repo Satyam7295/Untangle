@@ -1,12 +1,31 @@
 import Link from "next/link";
 
 import { requireAdmin } from "../../../src/lib/admin-auth";
+import { prisma } from "../../../src/lib/prisma";
+import { getAdminTenant } from "../../../src/lib/policy-tenant";
 import ConfigurationLayout from "../configuration-layout";
+import PolicyUploadForm from "./policy-upload-form";
+import PolicyRetryForm from "./policy-retry-form";
 
 export const dynamic = "force-dynamic";
 
 export default async function PolicyManagementPage() {
   await requireAdmin();
+  const tenant = await getAdminTenant();
+  const policy = await prisma.policyDocument.findFirst({
+    where: { tenantId: tenant.id },
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      originalFilename: true,
+      status: true,
+      errorMessage: true,
+      isActive: true,
+      chunkCount: true,
+      pageCount: true,
+      createdAt: true,
+    },
+  });
 
   return (
     <ConfigurationLayout>
@@ -27,15 +46,7 @@ export default async function PolicyManagementPage() {
               <p>Use a clear, current document with decision criteria, exceptions and escalation guidance.</p>
             </div>
           </div>
-          <label className="upload-dropzone" htmlFor="policy-file">
-            <span className="upload-file-icon" aria-hidden="true">PDF</span>
-            <strong>Choose a policy document</strong>
-            <span>PDF files only · One active policy per organization</span>
-            <input id="policy-file" name="policy-file" type="file" accept="application/pdf,.pdf" disabled aria-describedby="upload-status" />
-          </label>
-          <p id="upload-status" className="form-note">
-            File upload is not connected yet. The upload API, secure document storage and RAG indexing will be added before this control is enabled.
-          </p>
+          <PolicyUploadForm />
           <div className="policy-checklist">
             <h3>Before uploading</h3>
             <ul>
@@ -50,11 +61,20 @@ export default async function PolicyManagementPage() {
         <section className="policy-status-panel" aria-labelledby="policy-status-heading">
           <div>
             <p className="eyebrow">Current status</p>
-            <h2 id="policy-status-heading">No policy connected</h2>
-            <p className="form-note">The active policy status will appear here once upload, extraction and indexing are implemented.</p>
+            <h2 id="policy-status-heading">
+              {policy?.isActive ? "Policy active" : policy ? `Indexing ${policy.status.toLowerCase()}` : "No policy connected"}
+            </h2>
+            <p className="form-note">
+              {policy?.isActive
+                ? `${policy.originalFilename} · ${policy.pageCount ?? 0} pages · ${policy.chunkCount ?? 0} chunks`
+                : policy?.errorMessage || "Upload a PDF to extract and index its policy text."}
+            </p>
           </div>
-          <span className="status-badge">Not configured</span>
+          <span className="status-badge">{policy?.isActive ? "Ready" : policy?.status || "Not configured"}</span>
         </section>
+        {policy?.status === "FAILED" && (
+          <PolicyRetryForm documentId={policy.id} />
+        )}
       </section>
     </ConfigurationLayout>
   );
