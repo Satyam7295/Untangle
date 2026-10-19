@@ -1,0 +1,4 @@
+ALTER TABLE "PolicyDocument"
+ADD COLUMN "sourceSizeBytes" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN "pageCount" INTEGER,
+ADD COLUMN "failureReason" TEXT;

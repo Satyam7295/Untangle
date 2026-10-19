@@ -35,15 +35,34 @@ JSON object response mode, bounded retries, and request timeouts, and validates
 the returned interpretation before it can be used.
 
 Groq is an LLM provider only. It is not used for embeddings, and the existing
-embedding provider remains a separate server-side dependency. The interpreter
-is an internal service intended for a future authenticated orchestration layer;
+embedding provider is configured separately on the server. The interpreter is
+an internal service intended for a future authenticated orchestration layer;
 this feature does not add a public endpoint, ticket creation, or database
-writes. Tests inject mocked provider responses and therefore run without a
-paid Groq credential:
+writes. Tests inject mocked provider responses and therefore run without a paid
+Groq credential:
 
 ```bash
 npm test -- --run src/lib/groq-provider.test.ts src/lib/policy-interpretation.test.ts
 ```
+
+Policy PDF ingestion is available to the signed-in admin at `/admin/policies`.
+Set `ADMIN_TENANT_ID` to the server-resolved tenant key, then configure the
+OpenAI-compatible embedding service with `EMBEDDING_API_KEY`,
+`EMBEDDING_BASE_URL`, and `EMBEDDING_MODEL`. The default endpoint is OpenAI's
+`/v1/embeddings` API, but any compatible private endpoint can be used. Uploads
+are size-limited, checked for PDF magic bytes, extracted page by page, chunked,
+embedded, and persisted before the document is activated. A failed index is
+never made active. `POLICY_MAX_UPLOAD_BYTES`, `POLICY_CHUNK_SIZE`, and
+`POLICY_CHUNK_OVERLAP` are optional tuning settings.
+
+Apply the policy migrations before using the upload flow:
+
+```bash
+npx prisma migrate dev
+```
+
+Retrieval only reads the active `READY` document for the trusted tenant context
+provided by the server; browser-submitted tenant IDs are not accepted.
 
 ## Database foundation
 

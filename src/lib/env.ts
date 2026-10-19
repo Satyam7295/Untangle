@@ -4,6 +4,7 @@ export type AdminConfiguration = {
   id: string;
   password: string;
   sessionSecret: string;
+  tenantId: string;
 };
 
 export function getDatabaseUrl(environment: ServerEnvironment = process.env): string {
@@ -24,10 +25,11 @@ export function getAdminConfiguration(
   const id = environment.ADMIN_ID;
   const password = environment.ADMIN_PASSWORD;
   const sessionSecret = environment.SESSION_SECRET;
+  const tenantId = environment.ADMIN_TENANT_ID;
 
-  if (!id || !password || !sessionSecret) {
+  if (!id || !password || !sessionSecret || !tenantId) {
     throw new Error(
-      "ADMIN_ID, ADMIN_PASSWORD, and SESSION_SECRET are required. Copy .env.example to .env.local and configure server-only admin credentials.",
+      "ADMIN_ID, ADMIN_PASSWORD, SESSION_SECRET, and ADMIN_TENANT_ID are required. Copy .env.example to .env.local and configure server-only admin credentials.",
     );
   }
 
@@ -35,5 +37,5 @@ export function getAdminConfiguration(
     throw new Error("SESSION_SECRET must be at least 32 characters long.");
   }
 
-  return { id, password, sessionSecret };
+  return { id, password, sessionSecret, tenantId };
 }

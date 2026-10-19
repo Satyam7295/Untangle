@@ -14,6 +14,7 @@ describe("getDatabaseUrl", () => {
       ADMIN_ID: "admin@example.test",
       ADMIN_PASSWORD: "fictional-password",
       SESSION_SECRET: "a".repeat(32),
+      ADMIN_TENANT_ID: "tenant-a",
     };
 
     it("returns configured credentials without changing their exact values", () => {
@@ -21,11 +22,12 @@ describe("getDatabaseUrl", () => {
         id: "admin@example.test",
         password: "fictional-password",
         sessionSecret: "a".repeat(32),
+        tenantId: "tenant-a",
       });
     });
 
     it("rejects missing configuration", () => {
-      expect(() => getAdminConfiguration({})).toThrow("ADMIN_ID, ADMIN_PASSWORD, and SESSION_SECRET");
+      expect(() => getAdminConfiguration({})).toThrow("ADMIN_ID, ADMIN_PASSWORD, SESSION_SECRET, and ADMIN_TENANT_ID");
     });
 
     it("rejects a short session secret", () => {

@@ -215,6 +215,9 @@ model PolicyDocument {
   tenantId        String
   fileName        String
   title           String?
+  sourceSizeBytes Int
+  pageCount       Int?
+  failureReason   String?
   indexingStatus  PolicyIndexingStatus @default(UPLOADING)
   isActive        Boolean             @default(false)
   chunks          PolicyChunk[]
