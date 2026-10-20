@@ -262,12 +262,58 @@ model AuditEvent {
   @@index([actorRef, createdAt])
 }
 
+model PolicyDocument {
+  id              String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId        String
+  fileName        String
+  title           String?
+  sourceSizeBytes Int
+  pageCount       Int?
+  failureReason   String?
+  embeddingProvider String?
+  embeddingModel    String?
+  embeddingDimensions Int?
+  indexingStatus  PolicyIndexingStatus @default(UPLOADING)
+  isActive        Boolean             @default(false)
+  chunks          PolicyChunk[]
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  @@index([tenantId, isActive, indexingStatus])
+}
+
+model PolicyChunk {
+  id             String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  policyId       String         @db.Uuid
+  tenantId       String
+  policy          PolicyDocument @relation(fields: [policyId], references: [id], onDelete: Cascade)
+  chunkIndex     Int
+  content        String
+  pageStart      Int?
+  pageEnd        Int?
+  sectionHeading String?
+  embedding      Json?
+  createdAt      DateTime       @default(now())
+
+  @@unique([policyId, chunkIndex])
+  @@index([tenantId, policyId])
+}
+
 enum TicketStatus {
   OPEN
   IN_PROGRESS
   RESOLVED
   CLOSED
   ESCALATED
+}
+
+enum PolicyIndexingStatus {
+  UPLOADING
+  EXTRACTING
+  CHUNKING
+  EMBEDDING
+  READY
+  FAILED
 }
 
 enum DecisionOutcome {

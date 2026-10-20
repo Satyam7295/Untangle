@@ -1,6 +1,6 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 
-import { getAdminConfiguration, type AdminConfiguration } from "./env";
+import { getAdminCredentials, type AdminCredentials } from "./env";
 
 function securelyEquals(left: string, right: string): boolean {
   const leftDigest = createHash("sha256").update(left, "utf8").digest();
@@ -11,7 +11,7 @@ function securelyEquals(left: string, right: string): boolean {
 export function verifyAdminCredentials(
   id: string,
   password: string,
-  configuration: AdminConfiguration = getAdminConfiguration(),
+  configuration: AdminCredentials = getAdminCredentials(),
 ): boolean {
   return (
     securelyEquals(id, configuration.id) &&

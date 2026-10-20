@@ -6,6 +6,7 @@ const configuration = {
   id: "admin@example.test",
   password: "fictional-password",
   sessionSecret: "fictional-test-secret-that-is-long-enough",
+  tenantId: "tenant-a",
 };
 
 describe("verifyAdminCredentials", () => {

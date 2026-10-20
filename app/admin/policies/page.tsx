@@ -1,30 +1,20 @@
 import Link from "next/link";
 
 import { requireAdmin } from "../../../src/lib/admin-auth";
+import { getAdminConfiguration } from "../../../src/lib/env";
 import { prisma } from "../../../src/lib/prisma";
-import { getAdminTenant } from "../../../src/lib/policy-tenant";
 import ConfigurationLayout from "../configuration-layout";
-import PolicyUploadForm from "./policy-upload-form";
-import PolicyRetryForm from "./policy-retry-form";
+import PolicyUploadForm from "./upload-form";
 
 export const dynamic = "force-dynamic";
 
 export default async function PolicyManagementPage() {
   await requireAdmin();
-  const tenant = await getAdminTenant();
+  const tenantId = getAdminConfiguration().tenantId;
   const policy = await prisma.policyDocument.findFirst({
-    where: { tenantId: tenant.id },
-    orderBy: { createdAt: "desc" },
-    select: {
-      id: true,
-      originalFilename: true,
-      status: true,
-      errorMessage: true,
-      isActive: true,
-      chunkCount: true,
-      pageCount: true,
-      createdAt: true,
-    },
+    where: { tenantId, isActive: true },
+    orderBy: { updatedAt: "desc" },
+    select: { fileName: true, indexingStatus: true, pageCount: true, chunks: { select: { id: true } } },
   });
 
   return (
@@ -61,20 +51,15 @@ export default async function PolicyManagementPage() {
         <section className="policy-status-panel" aria-labelledby="policy-status-heading">
           <div>
             <p className="eyebrow">Current status</p>
-            <h2 id="policy-status-heading">
-              {policy?.isActive ? "Policy active" : policy ? `Indexing ${policy.status.toLowerCase()}` : "No policy connected"}
-            </h2>
+            <h2 id="policy-status-heading">{policy?.fileName ?? "No policy connected"}</h2>
             <p className="form-note">
-              {policy?.isActive
-                ? `${policy.originalFilename} · ${policy.pageCount ?? 0} pages · ${policy.chunkCount ?? 0} chunks`
-                : policy?.errorMessage || "Upload a PDF to extract and index its policy text."}
+              {policy
+                ? `${policy.indexingStatus} · ${policy.chunks.length} chunks${policy.pageCount ? ` · ${policy.pageCount} pages` : ""}`
+                : "Upload a PDF to extract and index the organization policy."}
             </p>
           </div>
-          <span className="status-badge">{policy?.isActive ? "Ready" : policy?.status || "Not configured"}</span>
+          <span className="status-badge">{policy?.indexingStatus ?? "Not configured"}</span>
         </section>
-        {policy?.status === "FAILED" && (
-          <PolicyRetryForm documentId={policy.id} />
-        )}
       </section>
     </ConfigurationLayout>
   );
