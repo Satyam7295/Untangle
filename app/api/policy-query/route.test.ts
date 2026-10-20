@@ -97,6 +97,21 @@ describe("policy query route", () => {
     expect(await response.json()).toMatchObject({ status, answer: expect.any(String), sources: [] });
   });
 
+  it("rejects an oversized request body before starting policy analysis", async () => {
+    const response = await POST(new Request("http://localhost/api/policy-query", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ query: "x".repeat(17_000) }),
+    }));
+
+    expect(response.status).toBe(413);
+    expect(analyzePolicyQuery).not.toHaveBeenCalled();
+    expect(await response.json()).toMatchObject({
+      status: "REQUEST_ERROR",
+      sources: [],
+    });
+  });
+
   it.each(["NO_ACTIVE_POLICY", "REINDEX_REQUIRED", "NO_USABLE_CHUNKS", "NO_RELEVANT_EVIDENCE"] as const)(
     "returns insufficient evidence for %s",
     async (status) => {

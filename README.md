@@ -29,7 +29,7 @@ cookies that expire after eight hours.
 The policy interpretation service uses Groq for chat completions. Obtain a
 server API key from [Groq Console](https://console.groq.com/keys), then set
 `GROQ_API_KEY` in `.env.local`. `GROQ_MODEL` is optional and defaults to
-`llama-3.3-70b-versatile`. Both variables are server-only; never prefix them
+`openai/gpt-oss-20b`. Both variables are server-only; never prefix them
 with `NEXT_PUBLIC_` or expose them to browser code. The provider uses Groq's
 JSON object response mode, bounded retries, and request timeouts, and validates
 the returned interpretation before it can be used.

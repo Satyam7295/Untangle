@@ -91,4 +91,9 @@ describe("Groq provider", () => {
     }).completeStructured(request)).rejects.toMatchObject({ code: "HTTP_ERROR" });
     expect(fetchImplementation).toHaveBeenCalledTimes(1);
   });
+
+  it("uses an active default model when GROQ_MODEL is omitted", () => {
+    expect(getGroqConfiguration({ GROQ_API_KEY: "test-secret" }).model)
+      .toBe("openai/gpt-oss-20b");
+  });
 });

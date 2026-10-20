@@ -38,6 +38,34 @@ describe("User mode", () => {
     }));
   });
 
+  it("shows the loading state while the policy query is pending", () => {
+    let resolveRequest: (response: Response) => void = () => undefined;
+    vi.spyOn(globalThis, "fetch").mockReturnValue(new Promise((resolve) => {
+      resolveRequest = resolve;
+    }));
+    render(<HomePage />);
+    fireEvent.change(screen.getByLabelText("Message Untangle"), { target: { value: "Question" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send message" }));
+
+    expect(screen.getByRole("status")).toHaveTextContent("Searching policy...");
+    expect(screen.getByRole("button", { name: "Send message" })).toBeDisabled();
+    resolveRequest(new Response(JSON.stringify({ answer: "Answer", sources: [] }), { status: 200 }));
+  });
+
+  it("renders a safe empty-evidence answer without source labels", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({
+      status: "NO_RELEVANT_EVIDENCE",
+      answer: "I could not find enough current policy evidence to answer safely. Please contact support for human review.",
+      sources: [],
+    }), { status: 200 }));
+    render(<HomePage />);
+    fireEvent.change(screen.getByLabelText("Message Untangle"), { target: { value: "Question" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send message" }));
+
+    await waitFor(() => expect(screen.getByText(/could not find enough current policy evidence/)).toBeInTheDocument());
+    expect(screen.queryByText(/SOURCES:/)).not.toBeInTheDocument();
+  });
+
   it("reports endpoint failures without displaying server details", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({
       status: "GROQ_PROVIDER_ERROR",
