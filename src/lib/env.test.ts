@@ -4,6 +4,7 @@ import {
   getAdminConfiguration,
   getAdminCredentials,
   getDatabaseUrl,
+  getPolicyTenantId,
   getSessionSecret,
 } from "./env";
 
@@ -66,5 +67,10 @@ describe("getDatabaseUrl", () => {
 
   it("rejects a blank URL", () => {
     expect(() => getDatabaseUrl({ DATABASE_URL: "  " })).toThrow("DATABASE_URL is not configured");
+  });
+
+  it("loads the policy tenant without requiring admin credentials", () => {
+    expect(getPolicyTenantId({ ADMIN_TENANT_ID: " tenant-a " })).toBe("tenant-a");
+    expect(() => getPolicyTenantId({})).toThrow("ADMIN_TENANT_ID");
   });
 });

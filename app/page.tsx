@@ -7,6 +7,13 @@ type Message = {
   id: number;
   role: "user" | "system";
   content: string;
+  sources?: Array<{
+    id: string;
+    excerpt: string;
+    pageStart: number | null;
+    pageEnd: number | null;
+    sectionHeading: string | null;
+  }>;
 };
 
 const suggestions = [
@@ -19,9 +26,10 @@ export default function HomePage() {
   const [query, setQuery] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [notice, setNotice] = useState("");
+  const [pending, setPending] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const text = query.trim();
     if (!text) {
@@ -30,18 +38,41 @@ export default function HomePage() {
       return;
     }
 
-    setMessages((current) => [
-      ...current,
-      { id: Date.now(), role: "user", content: text },
-      {
-        id: Date.now() + 1,
-        role: "system",
-        content:
-          "Your message is shown in this interface preview only. Query processing is not connected yet, so nothing was sent and no ticket was created.",
-      },
-    ]);
+    setMessages((current) => [...current, { id: Date.now(), role: "user", content: text }]);
     setQuery("");
     setNotice("");
+    setPending(true);
+    try {
+      const response = await fetch("/api/policy-query", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ query: text }),
+      });
+      const result = await response.json() as {
+        answer?: string;
+        sources?: Message["sources"];
+        clarificationQuestion?: string;
+      };
+      if (!response.ok || typeof result.answer !== "string") {
+        throw new Error("The policy query could not be completed.");
+      }
+      const answer = result.answer;
+      setMessages((current) => [
+        ...current,
+        {
+          id: Date.now(),
+          role: "system",
+          content: result.clarificationQuestion
+            ? `${answer}\n\n${result.clarificationQuestion}`
+            : answer,
+          sources: result.sources,
+        },
+      ]);
+    } catch {
+      setNotice("Policy search is temporarily unavailable. Please try again.");
+    } finally {
+      setPending(false);
+    }
   }
 
   function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
@@ -55,6 +86,7 @@ export default function HomePage() {
     setMessages([]);
     setQuery("");
     setNotice("");
+    setPending(false);
     inputRef.current?.focus();
   }
 
@@ -119,16 +151,26 @@ export default function HomePage() {
               </div>
             </div>
           ) : (
-            <div className="message-list" aria-live="polite" aria-label="Conversation preview">
+            <div className="message-list" aria-live="polite" aria-label="Conversation">
               {messages.map((message) => (
                 <article className={message.role === "user" ? "message-row message-user" : "message-row message-system"} key={message.id}>
                   {message.role === "system" ? <span className="assistant-avatar" aria-hidden="true">u</span> : null}
                   <div className={message.role === "user" ? "message-bubble user-bubble" : "message-bubble system-bubble"}>
-                    {message.content}
-                    {message.role === "system" ? <span className="message-preview-label">PREVIEW NOTICE</span> : null}
+                    <span>{message.content}</span>
+                    {message.sources?.length ? (
+                      <span className="message-preview-label">
+                        SOURCES: {message.sources.map((source) => source.sectionHeading || `Page ${source.pageStart ?? "?"}`).join(" · ")}
+                      </span>
+                    ) : null}
                   </div>
                 </article>
               ))}
+              {pending ? (
+                <article className="message-row message-system">
+                  <span className="assistant-avatar" aria-hidden="true">u</span>
+                  <div className="message-bubble system-bubble">Searching the current policy...</div>
+                </article>
+              ) : null}
             </div>
           )}
         </div>
@@ -150,13 +192,13 @@ export default function HomePage() {
               rows={1}
               aria-describedby="composer-note composer-status"
             />
-            <button className="chat-send-button" type="submit" aria-label="Preview message" disabled={!query.trim()}>
+            <button className="chat-send-button" type="submit" aria-label="Send message" disabled={!query.trim() || pending}>
               <span aria-hidden="true">↑</span>
             </button>
           </form>
           <div className="composer-meta">
-            <p id="composer-note">Enter to preview · Shift + Enter for a new line</p>
-            <p id="composer-status" role="status">{notice || "Preview only · Messages are not sent to a backend"}</p>
+            <p id="composer-note">Enter to send · Shift + Enter for a new line</p>
+            <p id="composer-status" role="status">{notice || (pending ? "Searching policy..." : "Answers are grounded in the current policy")}</p>
           </div>
         </div>
       </div>

@@ -55,16 +55,25 @@ export function getDatabaseUrl(environment: ServerEnvironment = process.env): st
   return databaseUrl;
 }
 
-export function getAdminConfiguration(
-  environment: ServerEnvironment = process.env,
-): AdminConfiguration {
-  const tenantId = environment.ADMIN_TENANT_ID;
+export function getPolicyTenantId(environment: ServerEnvironment = process.env): string {
+  const tenantId = environment.ADMIN_TENANT_ID?.trim();
 
   if (!tenantId) {
     throw new Error(
-      "ADMIN_TENANT_ID is required. Copy .env.example to .env.local and configure the tenant used for policy administration.",
+      "ADMIN_TENANT_ID is required. Copy .env.example to .env.local and configure the tenant used for policy queries.",
     );
   }
 
-  return { ...getAdminCredentials(environment), sessionSecret: getSessionSecret(environment), tenantId };
+  return tenantId;
+}
+
+export function getAdminConfiguration(
+  environment: ServerEnvironment = process.env,
+): AdminConfiguration {
+  const tenantId = getPolicyTenantId(environment);
+  return {
+    ...getAdminCredentials(environment),
+    sessionSecret: getSessionSecret(environment),
+    tenantId,
+  };
 }
