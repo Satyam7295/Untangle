@@ -4,6 +4,7 @@ import { analyzePolicyQuery, type QueryAnalysisResult } from "../../../src/lib/q
 import { getPolicyTenantId } from "../../../src/lib/env";
 import { createTrustedTenantContext } from "../../../src/lib/policy-tenant";
 import { responseForResult } from "../../../src/lib/policy-query-response";
+import { persistPolicyConversation } from "../../../src/lib/policy-conversations";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +13,7 @@ const MAX_REQUEST_BODY_BYTES = 16 * 1024;
 
 type PolicyQueryRequest = {
   query: unknown;
+  conversationId?: unknown;
 };
 
 class RequestBodyTooLargeError extends Error {}
@@ -99,6 +101,23 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   const response = responseForResult(result);
+  const headerConversationId = request.headers.get("x-conversation-id");
+  const conversationId = typeof body.conversationId === "string" && body.conversationId.trim()
+    ? body.conversationId.trim()
+    : headerConversationId?.trim() || null;
+  if (!("error" in result) && conversationId) {
+    try {
+      await persistPolicyConversation(
+        conversationId,
+        typeof body.query === "string" ? body.query.trim() : "",
+        tenantContext.tenantId,
+        result,
+        response,
+      );
+    } catch {
+      return errorResponse(503, "The policy response could not be saved. Please try again.");
+    }
+  }
   const status = response.status === "INVALID_QUERY" ? 400
     : response.status === "EMBEDDING_PROVIDER_ERROR"
       || response.status === "RETRIEVAL_DATABASE_ERROR"

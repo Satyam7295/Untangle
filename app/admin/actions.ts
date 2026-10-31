@@ -6,7 +6,15 @@ import { clearAdminSession, requireAdmin } from "../../src/lib/admin-auth";
 import { getAdminConfiguration } from "../../src/lib/env";
 import { ingestPolicyPdf } from "../../src/lib/policy-ingestion";
 
-export type PolicyUploadState = { error?: string; success?: string };
+export type PolicyUploadResult = {
+  id: string;
+  fileName: string;
+  chunkCount: number;
+  pageCount: number;
+  indexedAt: string;
+};
+
+export type PolicyUploadState = { error?: string; success?: string; result?: PolicyUploadResult };
 
 export async function uploadPolicy(
   _previous: PolicyUploadState,
@@ -22,7 +30,16 @@ export async function uploadPolicy(
       getAdminConfiguration().tenantId,
       file as File,
     );
-    return { success: `Policy indexed successfully (${result.chunkCount} chunks).` };
+    return {
+      success: "Policy indexed successfully.",
+      result: {
+        id: result.id,
+        fileName: (file as File).name,
+        chunkCount: result.chunkCount,
+        pageCount: result.pageCount,
+        indexedAt: new Date().toISOString(),
+      },
+    };
   } catch (error) {
     return {
       error: error instanceof Error

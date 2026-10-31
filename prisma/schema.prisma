@@ -158,6 +158,8 @@ model EscalationRule {
 model Ticket {
   id              String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   referenceNumber String           @unique @default(dbgenerated("(gen_random_uuid())::text"))
+  conversationId  String           @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId        String           @default("default")
   originalQuery   String
   categoryId      String?          @db.Uuid
   category        Category?        @relation(fields: [categoryId], references: [id], onDelete: Restrict, onUpdate: Cascade)
@@ -179,6 +181,7 @@ model Ticket {
   @@index([subcategoryId])
   @@index([priorityId])
   @@index([assignedTeamId, status])
+  @@index([tenantId, status, updatedAt])
 }
 
 model DecisionRecord {
@@ -211,10 +214,12 @@ model PolicyEvidence {
   id             String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   decisionId     String         @db.Uuid
   decision       DecisionRecord @relation(fields: [decisionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  sourceId       String?
   documentName   String
   pageStart      Int?
   pageEnd        Int?
   excerpt        String
+  relevanceScore Float?
   createdAt      DateTime       @default(now())
 
   @@index([decisionId, createdAt])

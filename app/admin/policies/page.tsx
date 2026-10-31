@@ -14,29 +14,40 @@ export default async function PolicyManagementPage() {
   const policy = await prisma.policyDocument.findFirst({
     where: { tenantId, isActive: true },
     orderBy: { updatedAt: "desc" },
-    select: { fileName: true, indexingStatus: true, pageCount: true, chunks: { select: { id: true } } },
+    select: { id: true, fileName: true, indexingStatus: true, pageCount: true, updatedAt: true, chunks: { select: { id: true } } },
   });
 
   return (
     <ConfigurationLayout>
-      <section className="admin-section" aria-labelledby="policy-title">
-        <Link className="back-link" href="/admin">← Back to overview</Link>
-        <p className="eyebrow">Organization policy</p>
-        <h1 id="policy-title">Policy document</h1>
-        <p className="lead">
-          Upload the document that defines your organization&apos;s decision logic. Untangle will retrieve
-          relevant passages during conversations instead of asking you to configure individual rules.
-        </p>
+      <section className="admin-section policy-page" aria-labelledby="policy-title">
+        <div className="policy-introduction">
+          <Link className="back-link" href="/admin">← Back to overview</Link>
+          <p className="eyebrow">Organization policy</p>
+          <h1 id="policy-title">Policy document</h1>
+          <p className="lead">
+            Upload the policy that defines your organization&apos;s decision criteria. Untangle uses its
+            contents to provide policy-grounded responses.
+          </p>
+        </div>
 
         <section className="upload-panel" aria-labelledby="upload-heading">
           <div className="upload-panel-heading">
-            <span className="upload-symbol" aria-hidden="true">↑</span>
             <div>
-              <h2 id="upload-heading">Upload your policy PDF</h2>
-              <p>Use a clear, current document with decision criteria, exceptions and escalation guidance.</p>
+              <p className="section-kicker">Policy source</p>
+              <h2 id="upload-heading">Upload policy document</h2>
+              <p>Upload a PDF containing decision criteria, exceptions, and escalation guidance.</p>
             </div>
           </div>
-          <PolicyUploadForm />
+          <PolicyUploadForm
+            initialPolicy={policy ? {
+              id: policy.id,
+              fileName: policy.fileName,
+              indexingStatus: policy.indexingStatus,
+              pageCount: policy.pageCount,
+              chunkCount: policy.chunks.length,
+              updatedAt: policy.updatedAt.toISOString(),
+            } : null}
+          />
           <div className="policy-checklist">
             <h3>Before uploading</h3>
             <ul>
@@ -48,18 +59,6 @@ export default async function PolicyManagementPage() {
           </div>
         </section>
 
-        <section className="policy-status-panel" aria-labelledby="policy-status-heading">
-          <div>
-            <p className="eyebrow">Current status</p>
-            <h2 id="policy-status-heading">{policy?.fileName ?? "No policy connected"}</h2>
-            <p className="form-note">
-              {policy
-                ? `${policy.indexingStatus} · ${policy.chunks.length} chunks${policy.pageCount ? ` · ${policy.pageCount} pages` : ""}`
-                : "Upload a PDF to extract and index the organization policy."}
-            </p>
-          </div>
-          <span className="status-badge">{policy?.indexingStatus ?? "Not configured"}</span>
-        </section>
       </section>
     </ConfigurationLayout>
   );

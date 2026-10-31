@@ -33,7 +33,7 @@ export default async function SupportCasePage({ params }: { params: Promise<{ id
           <CaseActions caseId={supportCase.id} resolved={supportCase.status === "RESOLVED"} />
         </div>
         <aside className="support-evidence"><h2>Policy evidence</h2>
-          {decision?.evidence.length ? decision.evidence.map((evidence) => <article className="evidence-card" key={evidence.id}><strong>{evidence.documentName}</strong><span>Page {evidence.pageStart ?? "?"}{evidence.pageEnd && evidence.pageEnd !== evidence.pageStart ? `-${evidence.pageEnd}` : ""}</span><p>{evidence.excerpt}</p></article>) : <p className="form-note">No retrieved evidence was recorded for this case.</p>}
+          {decision?.evidence.length ? decision.evidence.map((evidence) => <article className="evidence-card" key={evidence.id}><strong>{evidence.documentName}</strong><span>{evidence.sourceId ? `Source ${evidence.sourceId} · ` : ""}Page {evidence.pageStart ?? "?"}{evidence.pageEnd && evidence.pageEnd !== evidence.pageStart ? `-${evidence.pageEnd}` : ""}</span><p>{evidence.excerpt}</p></article>) : <p className="form-note">No retrieved evidence was recorded for this case.</p>}
         </aside>
       </section>
     </section>

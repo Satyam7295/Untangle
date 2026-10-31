@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, KeyboardEvent, useRef, useState } from "react";
+import { FormEvent, KeyboardEvent, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
 type Message = {
@@ -16,6 +16,8 @@ type Message = {
   }>;
 };
 
+type PolicyAvailability = "loading" | "ready" | "not-configured" | "unavailable";
+
 const suggestions = [
   "I need help understanding a company policy",
   "How do I request access to a tool?",
@@ -27,7 +29,30 @@ export default function HomePage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [notice, setNotice] = useState("");
   const [pending, setPending] = useState(false);
+  const [policyAvailability, setPolicyAvailability] = useState<PolicyAvailability>("loading");
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const conversationIdRef = useRef<string>(crypto.randomUUID());
+
+  useEffect(() => {
+    let cancelled = false;
+    const statusRequest = window.setTimeout(() => {
+      fetch("/api/policy-status")
+        .then(async (response) => {
+          if (!response.ok) throw new Error("Policy status unavailable");
+          return response.json() as Promise<{ status?: string }>;
+        })
+        .then((result) => {
+          if (!cancelled) setPolicyAvailability(result.status === "READY" ? "ready" : "not-configured");
+        })
+        .catch(() => {
+          if (!cancelled) setPolicyAvailability("unavailable");
+        });
+    }, 0);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(statusRequest);
+    };
+  }, []);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -45,7 +70,10 @@ export default function HomePage() {
     try {
       const response = await fetch("/api/policy-query", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: {
+          "content-type": "application/json",
+          "x-conversation-id": conversationIdRef.current,
+        },
         body: JSON.stringify({ query: text }),
       });
       const result = await response.json() as {
@@ -72,6 +100,7 @@ export default function HomePage() {
       setNotice("Policy search is temporarily unavailable. Please try again.");
     } finally {
       setPending(false);
+      conversationIdRef.current = crypto.randomUUID();
     }
   }
 
@@ -121,10 +150,21 @@ export default function HomePage() {
             <p className="chat-topbar-title">Ask Untangle</p>
             <p className="chat-topbar-subtitle">Policy-guided assistance</p>
           </div>
-          <span className="topbar-status"><span aria-hidden="true" /> Preview</span>
+          <span className={policyAvailability === "ready" ? "topbar-status ready" : "topbar-status"}>
+            <span aria-hidden="true" /> {policyAvailability === "ready" ? "Policy ready" : policyAvailability === "loading" ? "Checking policy" : "Policy unavailable"}
+          </span>
         </header>
 
         <div className={messages.length ? "chat-content chat-content-active" : "chat-content"}>
+          {policyAvailability !== "ready" ? (
+            <p className="policy-availability" role={policyAvailability === "unavailable" ? "alert" : undefined} aria-live="polite">
+              {policyAvailability === "loading"
+                ? "Checking whether your organization policy is available..."
+                : policyAvailability === "not-configured"
+                  ? "No active policy is available yet. You can write a question, but policy-grounded answers are not available."
+                  : "Policy search is temporarily unavailable. Please try again later."}
+            </p>
+          ) : null}
           {messages.length === 0 ? (
             <div className="chat-welcome">
               <div className="welcome-mark" aria-hidden="true"><span>u</span></div>
@@ -198,7 +238,7 @@ export default function HomePage() {
           </form>
           <div className="composer-meta">
             <p id="composer-note">Enter to send · Shift + Enter for a new line</p>
-            <p id="composer-status" role="status">{notice || (pending ? "Searching policy..." : "Answers are grounded in the current policy")}</p>
+            <p id="composer-status" role="status">{notice || (pending ? "Searching policy..." : policyAvailability === "ready" ? "Answers are grounded in the current policy" : "Policy-grounded answers are currently unavailable")}</p>
           </div>
         </div>
       </div>
