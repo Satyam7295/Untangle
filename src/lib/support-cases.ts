@@ -18,6 +18,7 @@ export async function listSupportCases() {
     where: { ...escalatedCaseFilter, tenantId: getPolicyTenantId() },
     include: {
       priority: { select: { name: true, severity: true } },
+      assignedTeam: { select: { name: true } },
       messages: { orderBy: { createdAt: "desc" }, take: 1, select: { createdAt: true } },
     },
     orderBy: { updatedAt: "desc" },
@@ -29,6 +30,7 @@ export async function getSupportCase(id: string) {
     where: { id, tenantId: getPolicyTenantId(), ...escalatedCaseFilter },
     include: {
       priority: { select: { name: true, severity: true } },
+      assignedTeam: { select: { name: true } },
       messages: { orderBy: { createdAt: "asc" } },
       decisions: {
         orderBy: { createdAt: "desc" },

@@ -23,7 +23,8 @@ export default async function SupportCasePage({ params }: { params: Promise<{ id
         <div><p className="eyebrow">Case {supportCase.referenceNumber}</p><h1 id="case-title">{supportCase.originalQuery}</h1></div>
         <span className={`case-status case-status-${supportCase.status.toLowerCase()}`}>{supportCase.status.replace("_", " ")}</span>
       </div>
-      <div className="support-case-meta"><span>Created {supportCase.createdAt.toLocaleString()}</span><span>Updated {supportCase.updatedAt.toLocaleString()}</span><span>Priority {supportCase.priority?.name ?? "Normal"}</span></div>
+      <div className="support-case-meta"><span>Created {supportCase.createdAt.toLocaleString()}</span><span>Updated {supportCase.updatedAt.toLocaleString()}</span><span>Priority {supportCase.priority?.name ?? "Normal"}</span><span>Team {supportCase.assignedTeam?.name ?? "Unassigned"}</span></div>
+      {supportCase.escalationReason ? <p className="form-note">Escalation reason: {supportCase.escalationReason}</p> : null}
       <section className="support-detail-grid">
         <div className="support-history" aria-label="Complete conversation history">
           <h2>Conversation</h2>

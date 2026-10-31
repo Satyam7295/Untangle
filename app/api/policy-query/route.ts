@@ -4,7 +4,7 @@ import { analyzePolicyQuery, type QueryAnalysisResult } from "../../../src/lib/q
 import { getPolicyTenantId } from "../../../src/lib/env";
 import { createTrustedTenantContext } from "../../../src/lib/policy-tenant";
 import { responseForResult } from "../../../src/lib/policy-query-response";
-import { persistPolicyConversation } from "../../../src/lib/policy-conversations";
+import { appendAwaitingSupportMessage, conversationAwaitingSupport, persistPolicyConversation } from "../../../src/lib/policy-conversations";
 
 export const dynamic = "force-dynamic";
 
@@ -73,12 +73,32 @@ export async function POST(request: Request): Promise<Response> {
   if (!body || typeof body !== "object" || !("query" in body)) {
     return errorResponse(400, "Send a JSON object containing a query.");
   }
+  const headerConversationId = request.headers.get("x-conversation-id");
+  const conversationId = typeof body.conversationId === "string" && body.conversationId.trim()
+    ? body.conversationId.trim()
+    : headerConversationId?.trim() || null;
 
   let tenantContext;
   try {
     tenantContext = createTrustedTenantContext(getPolicyTenantId());
   } catch {
     return errorResponse(503, "Policy search is not configured. Please contact support.");
+  }
+  if (conversationId) {
+    try {
+      if (await conversationAwaitingSupport(conversationId, tenantContext.tenantId)) {
+        if (typeof body.query === "string" && body.query.trim()) {
+          await appendAwaitingSupportMessage(conversationId, tenantContext.tenantId, body.query.trim());
+        }
+        return NextResponse.json({
+          status: "ESCALATED",
+          answer: "Your message was added to the existing conversation. A Support agent will respond.",
+          sources: [],
+        });
+      }
+    } catch {
+      return errorResponse(503, "The conversation status could not be checked. Please try again later.");
+    }
   }
 
   const analysis = analyzePolicyQuery({
@@ -101,10 +121,15 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   const response = responseForResult(result);
-  const headerConversationId = request.headers.get("x-conversation-id");
-  const conversationId = typeof body.conversationId === "string" && body.conversationId.trim()
-    ? body.conversationId.trim()
-    : headerConversationId?.trim() || null;
+  let ruleDecision;
+  if (!("error" in result) && conversationId) {
+    try {
+      const { loadAndEvaluateBusinessRules } = await import("../../../src/lib/business-rules/repository");
+      ruleDecision = await loadAndEvaluateBusinessRules({ status: "OPEN" });
+    } catch {
+      return errorResponse(503, "Configured business rules could not be evaluated. Please try again later.");
+    }
+  }
   if (!("error" in result) && conversationId) {
     try {
       await persistPolicyConversation(
@@ -113,9 +138,16 @@ export async function POST(request: Request): Promise<Response> {
         tenantContext.tenantId,
         result,
         response,
+        undefined,
+        ruleDecision,
       );
     } catch {
       return errorResponse(503, "The policy response could not be saved. Please try again.");
+    }
+    if (ruleDecision?.recommendation === "APPLY"
+      && ruleDecision.proposedActions.some((action) => action.type === "ESCALATE")
+      && response.status !== "HUMAN_REVIEW_REQUIRED") {
+      response.answer = `This conversation has been escalated to Support for human review. ${response.answer}`;
     }
   }
   const status = response.status === "INVALID_QUERY" ? 400

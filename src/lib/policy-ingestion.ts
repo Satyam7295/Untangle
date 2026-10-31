@@ -7,6 +7,8 @@ import {
   type PolicyUpload,
 } from "./policy-pdf";
 import { prisma } from "./prisma";
+import { extractDocumentRuleSuggestions } from "./document-rule-suggestions";
+import { Prisma } from "@prisma/client";
 
 export type PolicyIndexingStatus =
   | "UPLOADING" | "EXTRACTING" | "CHUNKING" | "EMBEDDING" | "READY" | "FAILED";
@@ -47,6 +49,25 @@ const repository: IngestionRepository = {
         embedding: [...chunk.embedding],
       })),
     });
+    const storedChunks = await transaction.policyChunk.findMany({
+      where: { policyId: id, tenantId },
+      select: { id: true, chunkIndex: true, content: true, pageStart: true, pageEnd: true, sectionHeading: true },
+    });
+    const suggestions = extractDocumentRuleSuggestions(storedChunks);
+    if (suggestions.length > 0) {
+      await transaction.documentRuleSuggestion.createMany({
+        data: suggestions.map((suggestion) => ({
+          tenantId,
+          policyDocumentId: id,
+          sourceChunkId: suggestion.sourceChunkId,
+          sourcePageStart: suggestion.sourcePageStart,
+          sourcePageEnd: suggestion.sourcePageEnd,
+          statement: suggestion.statement,
+          proposedConditions: suggestion.proposedConditions as Prisma.InputJsonValue,
+          proposedActions: suggestion.proposedActions as Prisma.InputJsonValue,
+        })),
+      });
+    }
     await transaction.policyDocument.updateMany({
       where: { tenantId, isActive: true, id: { not: id } },
       data: { isActive: false },

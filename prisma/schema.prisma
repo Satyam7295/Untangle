@@ -98,6 +98,28 @@ model BusinessRule {
   @@unique([name])
 }
 
+model DocumentRuleSuggestion {
+  id                 String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId           String
+  policyDocumentId   String                    @db.Uuid
+  sourceChunkId      String                    @db.Uuid
+  sourcePageStart    Int?
+  sourcePageEnd      Int?
+  statement          String
+  proposedConditions Json
+  proposedActions    Json
+  status             DocumentRuleSuggestionStatus @default(PENDING)
+  rejectionReason    String?
+  approvedRuleId     String?                   @db.Uuid
+  reviewedAt         DateTime?
+  policyDocument     PolicyDocument             @relation(fields: [policyDocumentId], references: [id], onDelete: Cascade)
+  createdAt          DateTime                   @default(now())
+  updatedAt          DateTime                   @updatedAt
+
+  @@index([tenantId, status, createdAt])
+  @@index([policyDocumentId, sourcePageStart])
+}
+
 model ActionConfiguration {
   id            String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   actionType    String
@@ -171,6 +193,9 @@ model Ticket {
   assignedTeam    Team?            @relation(fields: [assignedTeamId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   status          TicketStatus     @default(OPEN)
   escalationLevel Int              @default(0)
+  triggeringBusinessRuleId String? @db.Uuid
+  matchedConditions Json?
+  escalationReason String?
   decisions       DecisionRecord[]
   messages        ConversationMessage[]
   createdAt       DateTime         @default(now())
@@ -263,6 +288,7 @@ model PolicyDocument {
   indexingStatus  PolicyIndexingStatus @default(UPLOADING)
   isActive        Boolean             @default(false)
   chunks          PolicyChunk[]
+  ruleSuggestions DocumentRuleSuggestion[]
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
 
@@ -319,6 +345,12 @@ enum DecisionOutcome {
 enum RuleConditionMode {
   ALL
   ANY
+}
+
+enum DocumentRuleSuggestionStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 enum PolicyIndexStatus {
