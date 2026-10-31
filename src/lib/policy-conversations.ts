@@ -115,8 +115,11 @@ async function persistOnce(
   return client.$transaction(async (tx) => {
     const existing = await tx.ticket.findUnique({
       where: { conversationId },
-      select: { id: true, triggeringBusinessRuleId: true, status: true },
+      select: { id: true, tenantId: true, triggeringBusinessRuleId: true, status: true },
     });
+    if (existing && existing.tenantId !== tenantId) {
+      throw new Error("Conversation does not belong to the requested tenant.");
+    }
     const ruleEscalationResult = ruleEscalation(decision);
     const assignments = ruleAssignments(decision);
     const deterministicReview = decision?.recommendation === "HUMAN_REVIEW";

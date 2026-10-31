@@ -44,7 +44,7 @@ const result: QueryAnalysisResult = {
 function makeClient(existing: { id: string } | null = null) {
   const tx = {
     ticket: {
-      findUnique: vi.fn().mockResolvedValue(existing),
+      findUnique: vi.fn().mockResolvedValue(existing ? { tenantId: "tenant-a", ...existing } : null),
       create: vi.fn().mockResolvedValue({ id: existing?.id ?? "ticket-1", referenceNumber: "T-1" }),
       update: vi.fn().mockResolvedValue({ id: existing?.id ?? "ticket-1", referenceNumber: "T-1" }),
     },
@@ -91,6 +91,17 @@ describe("policy conversation persistence", () => {
         { ticketId: "existing-ticket", authorRole: "ASSISTANT", content: "Manager approval is required." },
       ],
     });
+  });
+
+  it("rejects an existing conversation owned by another tenant", async () => {
+    const { client, tx } = makeClient({ id: "existing-ticket" });
+    tx.ticket.findUnique.mockResolvedValue({ id: "existing-ticket", tenantId: "tenant-b", status: "OPEN", triggeringBusinessRuleId: null });
+
+    await expect(
+      persistPolicyConversation(conversationId, "Cross-tenant request", "tenant-a", result, response, client as unknown as ConversationPersistenceClient),
+    ).rejects.toThrow("does not belong to the requested tenant");
+    expect(tx.ticket.update).not.toHaveBeenCalled();
+    expect(tx.conversationMessage.createMany).not.toHaveBeenCalled();
   });
 
   it("marks only human-review results as escalated", async () => {

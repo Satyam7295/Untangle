@@ -84,8 +84,9 @@ npx prisma migrate dev
 
 For a remote or production database, inspect the target first and use
 `npx prisma migrate deploy` only after explicit approval for that environment.
-The current pending migration is
-`20261020020000_cloudflare_embedding_metadata`.
+The repository includes migrations through document rule suggestions and
+conversation persistence; do not apply them to production as part of this
+audit.
 
 Retrieval only reads the active `READY` document for the trusted tenant context
 provided by the server; browser-submitted tenant IDs are not accepted.
@@ -93,10 +94,10 @@ Configure `ADMIN_TENANT_ID` to the tenant key used by the server, and configure
 the local admin login with `ADMIN_ID`, `ADMIN_PASSWORD`, and
 `SESSION_SECRET`. Start the application with `npm run dev`, open
 `/admin/login`, sign in, and upload a harmless test policy at
-`/admin/policies`. The current public `/` page is an interface preview; no
-query-to-retrieval route is wired yet, so retrieval verification is performed
-through the policy retrieval service tests until that orchestration route is
-implemented.
+`/admin/policies`. The public `/` page sends queries to `/api/policy-query`;
+the route retrieves policy evidence, interprets the response, evaluates
+approved business rules, and persists the conversation when a conversation ID
+is supplied.
 
 Document and query embeddings both use `getEmbeddingProvider()`, so they share
 the configured provider, model, and dimensions. If stored metadata differs
@@ -139,9 +140,9 @@ signature, stores the file in the private `POLICY_STORAGE_DIR` directory, extrac
 text and page numbers with `pdf-parse`, normalizes and overlaps chunks, and calls
 the configured OpenAI-compatible embeddings endpoint. Chunks and embeddings are
 stored in PostgreSQL JSONB with tenant and document identifiers. This is the
-development-compatible vector store for this feature; query retrieval is not
-implemented yet. A future retrieval feature can move the JSONB vectors to
-pgvector without changing the document lifecycle.
+development-compatible vector store for this feature. A future retrieval
+feature can move the JSONB vectors to pgvector without changing the document
+lifecycle.
 
 Set these server-only values in `.env.local`:
 
