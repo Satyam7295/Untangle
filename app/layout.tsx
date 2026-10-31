@@ -17,7 +17,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
               <span className="brand-mark" aria-hidden="true">U</span>
               <span className="brand-name">Untangle</span>
             </Link>
-            <Link className="header-link" href="/admin/login">Admin sign-in</Link>
+            <nav className="header-links" aria-label="Sign-in options">
+              <Link className="header-link" href="/admin/login">Admin sign-in</Link>
+              <Link className="header-link" href="/support/login">Support sign-in</Link>
+            </nav>
           </header>
           <main className="main">{children}</main>
           <footer className="site-footer">Untangle is a focused starting point for clearer questions.</footer>

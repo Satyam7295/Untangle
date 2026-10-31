@@ -5,6 +5,11 @@ export type AdminCredentials = {
   password: string;
 };
 
+export type SupportCredentials = {
+  id: string;
+  password: string;
+};
+
 export type AdminConfiguration = {
   id: string;
   password: string;
@@ -41,6 +46,19 @@ export function getSessionSecret(environment: ServerEnvironment = process.env): 
   }
 
   return sessionSecret;
+}
+
+export function getSupportCredentials(
+  environment: ServerEnvironment = process.env,
+): SupportCredentials {
+  const id = environment.SUPPORT_ID;
+  const password = environment.SUPPORT_PASSWORD;
+
+  if (!id || !password) {
+    throw new Error("SUPPORT_ID and SUPPORT_PASSWORD are required for support sign-in.");
+  }
+
+  return { id, password };
 }
 
 export function getDatabaseUrl(environment: ServerEnvironment = process.env): string {

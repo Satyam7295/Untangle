@@ -3,7 +3,9 @@ import { describe, expect, it } from "vitest";
 import {
   ADMIN_SESSION_MAX_AGE,
   createAdminSession,
+  createSupportSession,
   isValidAdminSession,
+  isValidSupportSession,
 } from "./admin-session";
 
 const secret = "fictional-test-secret-that-is-long-enough";
@@ -30,5 +32,13 @@ describe("admin sessions", () => {
     expect(
       isValidAdminSession(session, secret, now + (ADMIN_SESSION_MAX_AGE + 1) * 1000),
     ).toBe(false);
+  });
+
+  it("isolates support sessions from admin sessions", () => {
+    const supportSession = createSupportSession(secret, now);
+
+    expect(isValidSupportSession(supportSession, secret, now)).toBe(true);
+    expect(isValidAdminSession(supportSession, secret, now)).toBe(false);
+    expect(isValidSupportSession(createAdminSession(secret, now), secret, now)).toBe(false);
   });
 });

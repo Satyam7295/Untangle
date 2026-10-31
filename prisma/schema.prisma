@@ -25,52 +25,8 @@ model Tenant {
   id              String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   slug            String           @unique
   name            String
-  policyDocuments PolicyDocument[]
-  policyChunks    PolicyChunk[]
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
-}
-
-model PolicyDocument {
-  id               String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId         String              @db.Uuid
-  tenant           Tenant              @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  originalFilename String
-  storageKey       String              @unique
-  sha256           String
-  mimeType         String
-  sizeBytes        Int
-  pageCount        Int?
-  chunkCount       Int?
-  status           PolicyIndexStatus   @default(PENDING)
-  errorMessage     String?
-  isActive         Boolean             @default(false)
-  activatedAt      DateTime?
-  chunks           PolicyChunk[]
-  createdAt        DateTime            @default(now())
-  updatedAt        DateTime            @updatedAt
-
-  @@index([tenantId, status, createdAt])
-  @@index([tenantId, isActive])
-  @@index([tenantId, sha256])
-}
-
-model PolicyChunk {
-  id               String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId         String         @db.Uuid
-  tenant           Tenant         @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  policyDocumentId String         @db.Uuid
-  policyDocument   PolicyDocument @relation(fields: [policyDocumentId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  chunkIndex       Int
-  content          String
-  embedding        Json
-  pageStart        Int?
-  pageEnd          Int?
-  section          String?
-  createdAt        DateTime       @default(now())
-
-  @@unique([policyDocumentId, chunkIndex])
-  @@index([tenantId, policyDocumentId])
 }
 
 model Subcategory {
@@ -214,6 +170,7 @@ model Ticket {
   status          TicketStatus     @default(OPEN)
   escalationLevel Int              @default(0)
   decisions       DecisionRecord[]
+  messages        ConversationMessage[]
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 
@@ -232,10 +189,35 @@ model DecisionRecord {
   explanation         Json?
   humanReviewRequired Boolean               @default(false)
   matchedRules        DecisionMatchedRule[]
+  evidence            PolicyEvidence[]
   createdAt           DateTime              @default(now())
 
   @@index([ticketId, createdAt])
   @@index([outcome, humanReviewRequired])
+}
+
+model ConversationMessage {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ticketId String   @db.Uuid
+  ticket   Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  authorRole String
+  content   String
+  createdAt DateTime @default(now())
+
+  @@index([ticketId, createdAt])
+}
+
+model PolicyEvidence {
+  id             String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  decisionId     String         @db.Uuid
+  decision       DecisionRecord @relation(fields: [decisionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  documentName   String
+  pageStart      Int?
+  pageEnd        Int?
+  excerpt        String
+  createdAt      DateTime       @default(now())
+
+  @@index([decisionId, createdAt])
 }
 
 model DecisionMatchedRule {
@@ -305,6 +287,12 @@ enum TicketStatus {
   RESOLVED
   CLOSED
   ESCALATED
+}
+
+enum UserRole {
+  USER
+  ADMIN
+  SUPPORT
 }
 
 enum PolicyIndexingStatus {
